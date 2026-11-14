@@ -12,6 +12,11 @@ enum Role {
   ADMIN
 }
 
+enum MeasureType {
+  GLYCEMIE
+  TENSION
+}
+
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
@@ -30,6 +35,50 @@ model DoctorProfile {
   firstNameEnc     String
   ordreNumberHash  String   @unique
   status           String   @default("PENDING")
+  
+  smsQuotaMonthly  Int      @default(20)
+  smsUsedThisMonth Int      @default(0)
+  
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  patients         Patient[]
+}
+
+model Patient {
+  id               String   @id @default(cuid())
+  lastNameEnc      String
+  firstNameEnc     String
+  phoneE164        String   @unique
+  referentDoctorId String
+  referentDoctor   DoctorProfile @relation(fields: [referentDoctorId], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  mesures          Mesure[]
+  objectifs        Objectif[]
+}
+
+model Objectif {
+  id             String   @id @default(cuid())
+  patientId      String
+  patient        Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  glycemieMax    Int?
+  systoliqueMax  Int?
+  diastoliqueMax Int?
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Mesure {
+  id             String      @id @default(cuid())
+  patientId      String
+  patient        Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  type           MeasureType
+  valeurGlycemie Int?
+  systolique     Int?
+  diastolique    Int?
+  measuredAt     DateTime    @default(now())
+  createdAt      DateTime    @default(now())
+  alertRaised    Boolean     @default(false)
+  alertReason    String?
 }

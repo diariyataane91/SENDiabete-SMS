@@ -13,20 +13,21 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
+  e.preventDefault()
+  setIsLoading(true)
+  setError("")
 
-    const res = await signIn("credentials", { email, password, redirect: false })
+  const res = await signIn("credentials", { email, password, redirect: false })
 
-    if (res?.error) {
-      setError("Email ou mot de passe incorrect.")
-      setIsLoading(false)
-    } else {
-      router.push("/dashboard")
-      router.refresh()
-    }
+  if (res?.error) {
+    // ✨ On affiche le message exact renvoyé par notre configuration NextAuth
+    setError(res.error)
+    setIsLoading(false)
+  } else {
+    router.push("/dashboard")
+    router.refresh()
   }
+}
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 p-4">

@@ -16,8 +16,11 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Email et mot de passe requis")
         }
 
+        // ... (au début du fichier, garde tes imports)
+
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email }
+          where: { email: credentials.email },
+          include: { doctorProfile: true } // ✨ On inclut le profil
         })
 
         if (!user) throw new Error("Utilisateur introuvable")
@@ -25,7 +28,16 @@ export const authOptions: NextAuthOptions = {
         const isValid = await bcrypt.compare(credentials.password, user.passwordHash)
         if (!isValid) throw new Error("Mot de passe incorrect")
 
+        // ✨ VÉRIFICATION DU STATUT
+        if (user.doctorProfile && user.doctorProfile.status === "PENDING") {
+          throw new Error("Votre compte est en attente de validation par l'administration.")
+        }
+        if (user.doctorProfile && user.doctorProfile.status === "REJECTED") {
+          throw new Error("Votre compte a été rejeté. Contactez l'administration.")
+        }
+
         return { id: user.id, email: user.email, role: user.role } as any
+// ... (garde la suite du fichier)
       }
     })
   ],
