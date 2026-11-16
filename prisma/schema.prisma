@@ -17,6 +17,12 @@ enum MeasureType {
   TENSION
 }
 
+enum DelegationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
@@ -41,7 +47,11 @@ model DoctorProfile {
   
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
-  patients         Patient[]
+  
+  patients           Patient[]
+  delegationsGiven   Delegation[] @relation("delegator")
+  delegationsReceived Delegation[] @relation("delegatee")
+  ordonnances        Ordonnance[]
 }
 
 model Patient {
@@ -53,8 +63,11 @@ model Patient {
   referentDoctor   DoctorProfile @relation(fields: [referentDoctorId], references: [id])
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  
   mesures          Mesure[]
   objectifs        Objectif[]
+  ordonnances      Ordonnance[]
+  delegations      Delegation[]
 }
 
 model Objectif {
@@ -81,4 +94,53 @@ model Mesure {
   createdAt      DateTime    @default(now())
   alertRaised    Boolean     @default(false)
   alertReason    String?
+}
+
+model Ordonnance {
+  id         String   @id @default(cuid())
+  patientId  String
+  patient    Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId   String
+  doctor     DoctorProfile @relation(fields: [doctorId], references: [id])
+  contentEnc String
+  issuedAt   DateTime @default(now())
+  createdAt  DateTime @default(now())
+}
+
+model Delegation {
+  id          String        @id @default(cuid())
+  delegatorId String
+  delegator   DoctorProfile @relation("delegator", fields: [delegatorId], references: [id])
+  delegateeId String
+  delegatee   DoctorProfile @relation("delegatee", fields: [delegateeId], references: [id])
+  patientId   String?
+  patient     Patient?      @relation(fields: [patientId], references: [id])
+  startsAt    DateTime
+  endsAt      DateTime
+  revokedAt   DateTime?
+  status      DelegationStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+}
+
+enum AuditAction {
+  LOGIN
+  PATIENT_READ
+  PATIENT_CREATE
+  MEASURE_CREATE
+  ORDONNANCE_CREATE
+  DELEGATION_CREATE
+  DELEGATION_ACCEPT
+  SMS_SEND
+  DOCTOR_VERIFIED
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  actorId    String      // L'ID du User qui fait l'action
+  action     AuditAction
+  targetType String?     // Ex: "Patient", "Mesure"
+  targetId   String?     // L'ID de l'objet concerné
+  metadata   String?     // Détails (ex: le nom du patient concerné)
+  ipAddress  String?
+  createdAt  DateTime    @default(now())
 }

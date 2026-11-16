@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { encrypt } from "@/lib/crypto"
+import { logAudit } from "@/lib/audit"
 
 export async function POST(req: Request) {
   try {
@@ -18,7 +19,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Tous les champs sont requis" }, { status: 400 })
     }
 
-    // On récupère le profil du médecin connecté
     const doctorProfile = await prisma.doctorProfile.findUnique({
       where: { userId: session.user.id }
     })
@@ -27,7 +27,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Profil médecin introuvable" }, { status: 404 })
     }
 
-    // ✨ CHIFFREMENT DES DONNÉES SENSIBLES
     const encryptedFirstName = encrypt(firstName)
     const encryptedLastName = encrypt(lastName)
 
@@ -40,9 +39,11 @@ export async function POST(req: Request) {
       }
     })
 
+    // ✨ Enregistrement dans les logs
+    await logAudit(session.user.id, "PATIENT_CREATE", "Patient", patient.id, `Création du patient ${firstName} ${lastName}`)
+
     return NextResponse.json({ success: true, patient: { id: patient.id } })
   } catch (error: any) {
-    // Gérer l'erreur si le numéro de téléphone existe déjà
     if (error.code === 'P2002') {
       return NextResponse.json({ error: "Ce numéro de téléphone est déjà enregistré." }, { status: 400 })
     }

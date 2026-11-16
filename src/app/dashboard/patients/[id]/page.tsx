@@ -46,9 +46,16 @@ export default async function PatientDetail({ params }: { params: { id: string }
             <h1 className="text-3xl font-bold text-slate-800">{prenom} {nom}</h1>
             <p className="text-slate-500 mt-1">Téléphone : {patient.phoneE164}</p>
           </div>
-          <Link href={`/dashboard/patients/${patient.id}/mesures/new`} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-            + Ajouter une mesure
-          </Link>
+          
+          {/* ✨ LES DEUX BOUTONS SONT MAINTENANT CORRECTEMENT PLACÉS */}
+          <div className="flex gap-3">
+            <Link href={`/dashboard/patients/${patient.id}/ordonnances/new`} className="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-900 transition-colors">
+              + Ordonnance
+            </Link>
+            <Link href={`/dashboard/patients/${patient.id}/mesures/new`} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+              + Ajouter une mesure
+            </Link>
+          </div>
         </div>
       </div>
 

@@ -1,3 +1,4 @@
+import { logAudit } from "@/lib/audit"
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
@@ -47,6 +48,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       }
     })
 
+    // ✨ Enregistrement dans les logs
+await logAudit(session.user.id, "MEASURE_CREATE", "Patient", params.id, `Mesure ${type} enregistrée`)
     return NextResponse.json({ success: true, mesure })
   } catch (error) {
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })

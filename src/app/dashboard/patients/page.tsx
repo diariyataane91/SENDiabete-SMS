@@ -9,16 +9,29 @@ export default async function PatientsList() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) redirect("/login")
 
-  // On récupère le profil du médecin connecté
   const doctorProfile = await prisma.doctorProfile.findUnique({
     where: { userId: session.user.id }
   })
 
   if (!doctorProfile) return <div>Erreur : Profil médecin introuvable</div>
 
-  // On récupère uniquement les patients de ce médecin
   const patients = await prisma.patient.findMany({
-    where: { referentDoctorId: doctorProfile.id },
+    where: {
+      OR: [
+        { referentDoctorId: doctorProfile.id },
+        {
+          delegations: {
+            some: {
+              delegateeId: doctorProfile.id,
+              startsAt: { lte: new Date() },
+              endsAt: { gte: new Date() },
+              revokedAt: null,
+              status: "ACCEPTED"
+            }
+          }
+        }
+      ]
+    },
     orderBy: { createdAt: "desc" }
   })
 
@@ -26,10 +39,7 @@ export default async function PatientsList() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-slate-800">Mes Patients ({patients.length})</h1>
-        <Link 
-          href="/dashboard/patients/new" 
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-        >
+        <Link href="/dashboard/patients/new" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
           + Nouveau Patient
         </Link>
       </div>
@@ -52,19 +62,20 @@ export default async function PatientsList() {
             <tbody className="divide-y divide-slate-200">
               {patients.map((patient) => (
                 <tr key={patient.id} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 font-medium text-slate-800">
-                    {/* ✨ DÉCHIFFREMENT À LA VOLÉE POUR L'AFFICHAGE */}
+                  <td className="px-6 py-4 font-medium text-slate-800 flex items-center gap-2">
                     {decrypt(patient.firstNameEnc)} {decrypt(patient.lastNameEnc)}
+                    {patient.referentDoctorId !== doctorProfile.id && (
+                      <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-semibold">
+                        Délégation
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-slate-600">{patient.phoneE164}</td>
                   <td className="px-6 py-4 text-slate-600">
                     {new Date(patient.createdAt).toLocaleDateString('fr-FR')}
                   </td>
                   <td className="px-6 py-4">
-                    <Link 
-                      href={`/dashboard/patients/${patient.id}`} 
-                      className="text-blue-600 hover:underline text-sm font-medium"
-                    >
+                    <Link href={`/dashboard/patients/${patient.id}`} className="text-blue-600 hover:underline text-sm font-medium">
                       Voir la fiche
                     </Link>
                   </td>
