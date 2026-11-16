@@ -3,6 +3,8 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { decrypt } from "@/lib/crypto"
 import { redirect } from "next/navigation"
+import PaymentButton from "./payment-button"
+import ChangePasswordModal from "./change-password-modal" // ✨ Nouveau composant
 
 export default async function ComptePage() {
   const session = await getServerSession(authOptions)
@@ -19,6 +21,12 @@ export default async function ComptePage() {
   const nom = decrypt(doctor.lastNameEnc)
   const smsRestants = doctor.smsQuotaMonthly - doctor.smsUsedThisMonth
   const pourcentageSms = (doctor.smsUsedThisMonth / doctor.smsQuotaMonthly) * 100
+
+  const dateFin = doctor.subscriptionEndsAt 
+    ? new Date(doctor.subscriptionEndsAt).toLocaleDateString('fr-FR') 
+    : "Non défini"
+  
+  const estExpire = doctor.subscriptionEndsAt && new Date(doctor.subscriptionEndsAt) < new Date()
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -68,7 +76,6 @@ export default async function ComptePage() {
                 <p className="text-2xl font-bold text-blue-900">{smsRestants} <span className="text-sm font-normal text-slate-500">/ {doctor.smsQuotaMonthly}</span></p>
               </div>
               
-              {/* Barre de progression */}
               <div className="w-full bg-slate-100 rounded-full h-3">
                 <div 
                   className={`h-3 rounded-full ${smsRestants > 5 ? 'bg-blue-500' : 'bg-red-500'}`} 
@@ -79,16 +86,31 @@ export default async function ComptePage() {
                 Les SMS sont réinitialisés le 1er de chaque mois. Utilisez WhatsApp en priorité pour économiser votre forfait.
               </p>
             </div>
-
-            <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-              <p className="text-xs text-slate-600">
-                💡 <strong>Astuce :</strong> Le bouton WhatsApp est gratuit et illimité. Le SMS Push est réservé aux urgences.
-              </p>
-            </div>
           </div>
         </div>
 
-        {/* CARTE 3 : SÉCURITÉ */}
+        {/* CARTE 3 : ABONNEMENT */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 md:col-span-2">
+          <h2 className="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100">Mon Abonnement</h2>
+          
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-sm font-medium text-slate-800">
+                Forfait actuel : <span className="font-bold text-blue-600">{doctor.plan}</span>
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                {estExpire ? (
+                  <span className="text-red-500 font-semibold">Votre abonnement a expiré le {dateFin}.</span>
+                ) : (
+                  <>Valide jusqu'au : <span className="font-semibold">{dateFin}</span></>
+                )}
+              </p>
+            </div>
+            <PaymentButton doctorId={doctor.id} currentPlan={doctor.plan} />
+          </div>
+        </div>
+
+        {/* CARTE 4 : SÉCURITÉ */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 md:col-span-2">
           <h2 className="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100">Sécurité</h2>
           
@@ -97,9 +119,7 @@ export default async function ComptePage() {
               <p className="text-sm font-medium text-slate-800">Mot de passe</p>
               <p className="text-xs text-slate-500 mt-1">Il est recommandé de changer votre mot de passe tous les 3 mois.</p>
             </div>
-            <button className="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-900 transition-colors">
-              Modifier le mot de passe
-            </button>
+            <ChangePasswordModal /> {/* ✨ Le bouton d'ouverture de la modale */}
           </div>
         </div>
 
